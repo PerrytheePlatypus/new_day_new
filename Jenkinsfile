@@ -15,7 +15,7 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 dir('assign3') {
-                    bat '''
+                    bat script: '''
                         set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
                         terraform init
                     '''
@@ -26,7 +26,7 @@ pipeline {
         stage('Terraform Plan & Apply') {
             steps {
                 dir('assign3') {
-                    bat '''
+                    bat script: '''
                         set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
                         terraform plan
                         terraform apply -auto-approve
@@ -42,14 +42,6 @@ pipeline {
                     bat 'dotnet build --configuration Release'
                     bat 'dotnet publish -c Release -o out'
                     bat 'powershell Compress-Archive -Path "out\\*" -DestinationPath "WebApplication1.zip" -Force'
-
-                    // Debug: Check ZIP file exists
-                    bat '''
-                        echo Checking published output:
-                        dir out
-                        echo Checking ZIP file:
-                        dir WebApplication1.zip
-                    '''
                 }
             }
         }
@@ -57,19 +49,9 @@ pipeline {
         stage('Deploy to Azure App Service') {
             steps {
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    powershell '''
-                        $env:PATH = "$env:AZURE_CLI_PATH;$env:SYSTEM_PATH;$env:TERRAFORM_PATH;$env:PATH"
-
-                        # Optional: Display info for debugging
-                        Write-Host "Checking workspace ZIP path..."
-                        Get-ChildItem "$env:WORKSPACE/WebApplication1/WebApplication1.zip"
-
-                        # Deploy the ZIP file to Azure App Service
-                        az webapp deploy `
-                            --resource-group $env:RESOURCE_GROUP `
-                            --name $env:APP_SERVICE_NAME `
-                            --src-path "$env:WORKSPACE/WebApplication1/WebApplication1.zip" `
-                            --type zip
+                    bat script: '''
+                        set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
+                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\WebApplication1\\WebApplication1.zip --type zip
                     '''
                 }
             }
@@ -78,10 +60,14 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment Successful!'
+            always {
+                echo 'Deployment Successful!'
+            }
         }
         failure {
-            echo 'Deployment Failed!'
+            always {
+                echo 'Deployment Failed!'
+            }
         }
     }
 }
