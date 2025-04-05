@@ -6,7 +6,7 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region for the resources"
   type        = string
-  default     = "East US"
+  default     = "Central US"
 }
 variable "app_service_plan_name" {
   description = "Name of the App Service Plan"
