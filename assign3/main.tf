@@ -1,11 +1,14 @@
 provider "azurerm" {
   features {}
   subscription_id = "0f9d69f5-ad20-4bba-b635-f1f6dc2c1744"
+  version        = "~> 3.0"
 }
+
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
 }
+
 resource "azurerm_app_service_plan" "asp" {
   name                = var.app_service_plan_name
   location            = azurerm_resource_group.rg.location
@@ -17,6 +20,7 @@ resource "azurerm_app_service_plan" "asp" {
     size     = "S1"
   }
 }
+
 resource "azurerm_app_service" "app" {
   name                = var.app_service_name
   location            = azurerm_resource_group.rg.location
@@ -25,6 +29,7 @@ resource "azurerm_app_service" "app" {
   
   site_config {
     always_on = true
-    linux_fx_version = "DOCKER|mcr.microsoft.com/azure-app-service/samples/node:13-lts"
+    # Adjust this for .NET
+    linux_fx_version = "DOCKER|mcr.microsoft.com/dotnet/core/sdk:6.0"
   }
 }
