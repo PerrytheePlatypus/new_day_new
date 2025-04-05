@@ -46,11 +46,12 @@ pipeline {
             }
         }
 
-         stage('Deploy to Azure App Service') {
-                steps {
-                    withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                        bat 'set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%'
-                        bat 'az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\Webapplication1\\Webapplication1.zip --type zip'
+        stage('Deploy to Azure App Service') {
+            steps {
+                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+                    bat script: '''
+                        set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
+                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\WebApplication1\\WebApplication1.zip --type zip
                     '''
                 }
             }
@@ -59,10 +60,14 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment Successful!'
+            always {
+                echo 'Deployment Successful!'
+            }
         }
         failure {
-            echo 'Deployment Failed!'
+            always {
+                echo 'Deployment Failed!'
+            }
         }
     }
 }
