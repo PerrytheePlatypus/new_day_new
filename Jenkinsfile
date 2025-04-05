@@ -1,103 +1,69 @@
 pipeline {
-    agent any
+        agent any
 
-    environment {
-        AZURE_CREDENTIALS_ID = '05-10-2025-adi-april'
-        RESOURCE_GROUP = 'rg-jenkins'
-        APP_SERVICE_NAME = 'webapijenkin02202505'
-        GIT_REPO_URL = 'https://github.com/PerrytheePlatypus/new_day_new.git'
-        GIT_BRANCH = 'main'
-        TERRAFORM_VERSION = '1.7.5'
-    }
-
-    stages {
-        stage('Checkout Code') {
-            steps {
-                git branch: GIT_BRANCH, url: GIT_REPO_URL
-            }
+        environment {
+            AZURE_CREDENTIALS_ID = '05-10-2025-adi-april'
+            RESOURCE_GROUP = 'rg-jenkins'
+            APP_SERVICE_NAME = 'webapijenkin02202505'
+            AZURE_CLI_PATH = 'C:/Program Files/Microsoft SDKs/Azure/CLI2/wbin'
+            SYSTEM_PATH = 'C:/Windows/System32'
+            TERRAFORM_PATH = 'C:/Users/91907/Downloads/terraform_1.11.3_windows_386'
         }
 
-        stage('Install Terraform') {
-            steps {
-                bat '''
-                    powershell -Command "Invoke-WebRequest -Uri 'https://releases.hashicorp.com/terraform/%TERRAFORM_VERSION%/terraform_%TERRAFORM_VERSION%_windows_amd64.zip' -OutFile 'terraform.zip'"
-                    powershell -Command "Expand-Archive -Path 'terraform.zip' -DestinationPath 'C:\\terraform' -Force"
-                    setx PATH "%PATH%;C:\\terraform" /M
-                '''
-            }
-        }
+        stages {
 
-        stage('Azure Login') {
-            steps {
-                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    bat '''
-                        az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
-                        az account set --subscription "%AZURE_SUBSCRIPTION_ID%"
-                    '''
+            stage('Terraform Init') {
+                steps {
+                    dir('assign3') {
+                        bat '''
+                            set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
+                            terraform init
+                        '''
+                    }
+                }
+            }
+
+            stage('Terraform Plan & Apply') {
+                steps {
+                    dir('assign3') {
+                        bat '''
+                            set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%
+                            terraform plan
+                            terraform apply -auto-approve
+                        '''
+                    }
+                }
+            }
+
+            stage('Publish .NET 8 Web API') {
+                steps {
+                    dir('assign3') {
+                        bat 'dotnet restore'
+                        bat 'dotnet build --configuration Release'
+                        bat 'dotnet publish -c Release -o out'
+                        bat 'powershell Compress-Archive -Path "out\\*" -DestinationPath "Webapi.zip" -Force'
+                    
+                    }
+                }
+            }
+
+            stage('Deploy to Azure App Service') {
+                steps {
+                    withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+                        bat 'set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%'
+                        bat 'az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\Webapi\\Webapi.zip --type zip'
+                    
+                    }
                 }
             }
         }
 
-        stage('Terraform Init') {
-            steps {
-                dir('terraform') {
-                    bat '''
-                        C:\\terraform\\terraform.exe init
-                    '''
-                }
+        post {
+            success {
+                echo 'Deployment Successful!'
             }
-        }
-
-        stage('Terraform Plan & Apply') {
-            steps {
-                dir('terraform') {
-                    bat '''
-                        C:\\terraform\\terraform.exe plan
-                        C:\\terraform\\terraform.exe apply -auto-approve
-                    '''
-                }
-            }
-        }
-
-        stage('Publish .NET 8 Web API') {
-            steps {
-                dir('webapi') {
-                    bat '''
-                        dotnet publish -c Release -o out
-                        powershell Compress-Archive -Path "out\\*" -DestinationPath "webapi.zip" -Force
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy to Azure App Service') {
-            steps {
-                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    bat '''
-                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path "%WORKSPACE%\\webapi\\webapi.zip" --type zip
-                    '''
-                }
+            failure {
+                echo 'Deployment Failed!'
             }
         }
     }
-
-    post {
-        success {
-            echo '''
-                =========================================
-                Deployment Successful!
-                Your application is available at:
-                https://%APP_SERVICE_NAME%.azurewebsites.net
-                =========================================
-            '''
-        }
-        failure {
-            echo '''
-                =========================================
-                Deployment Failed!
-                Please check the logs for details.
-                =========================================
-            '''
-        }
-    }
-}
