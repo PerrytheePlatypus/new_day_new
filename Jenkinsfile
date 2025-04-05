@@ -37,7 +37,7 @@ pipeline {
 
             stage('Publish .NET 8 Web API') {
                 steps {
-                    dir('assign3') {
+                    dir('WebApplication1') {
                         bat 'dotnet restore'
                         bat 'dotnet build --configuration Release'
                         bat 'dotnet publish -c Release -o out'
