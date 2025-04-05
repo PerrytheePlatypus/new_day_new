@@ -3,11 +3,9 @@ pipeline {
 
     environment {
         AZURE_CREDENTIALS_ID = '05-10-2025-adi-april'
-        RESOURCE_GROUP = 'rg-jenkins'
-        APP_SERVICE_NAME = 'webapijenkin02202505'
+        TERRAFORM_VERSION = '1.7.5'
         GIT_REPO_URL = 'https://github.com/PerrytheePlatypus/new_day_new.git'
         GIT_BRANCH = 'main'
-        TERRAFORM_VERSION = '1.7.5'
     }
 
     stages {
@@ -48,12 +46,11 @@ pipeline {
             }
         }
 
-        stage('Terraform Plan & Apply') {
+        stage('Terraform Apply') {
             steps {
                 dir('terraform') {
                     bat '''
-                        C:\\terraform\\terraform.exe plan
-                        C:\\terraform\\terraform.exe apply -auto-approve
+                        C:\\terraform\\terraform.exe apply -auto-approve -var="resource_group_name=rg-jenkins" -var="location=Central US" -var="app_service_plan_name=aditya-2025-jan-cpg" -var="app_service_name=webapijenkin02202505"
                     '''
                 }
             }
@@ -74,7 +71,7 @@ pipeline {
             steps {
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat '''
-                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path "%WORKSPACE%\\webapi\\webapi.zip" --type zip
+                        az webapp deploy --resource-group rg-jenkins --name webapijenkin02202505 --src-path "%WORKSPACE%\\webapi\\webapi.zip" --type zip
                     '''
                 }
             }
@@ -87,7 +84,7 @@ pipeline {
                 =========================================
                 Deployment Successful!
                 Your application is available at:
-                https://%APP_SERVICE_NAME%.azurewebsites.net
+                https://webapijenkin02202505.azurewebsites.net
                 =========================================
             '''
         }
