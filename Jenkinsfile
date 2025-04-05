@@ -7,7 +7,7 @@ pipeline {
         APP_SERVICE_NAME = 'webapijenkin02202505'
         GIT_REPO_URL = 'https://github.com/PerrytheePlatypus/new_day_new.git'
         GIT_BRANCH = 'main'
-        TERRAFORM_VERSION = '1.7.5'  // Specify the Terraform version you want to use
+        TERRAFORM_VERSION = '1.7.5'
     }
 
     stages {
@@ -20,11 +20,9 @@ pipeline {
         stage('Install Terraform') {
             steps {
                 bat '''
-                    
                     powershell -Command "Invoke-WebRequest -Uri 'https://releases.hashicorp.com/terraform/%TERRAFORM_VERSION%/terraform_%TERRAFORM_VERSION%_windows_amd64.zip' -OutFile 'terraform.zip'"
                     powershell -Command "Expand-Archive -Path 'terraform.zip' -DestinationPath 'C:\\terraform' -Force"
                     setx PATH "%PATH%;C:\\terraform" /M
-                    
                 '''
             }
         }
@@ -42,7 +40,7 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                dir('terrafom') {
+                dir('terraform') {
                     bat '''
                         C:\\terraform\\terraform.exe init
                     '''
@@ -52,7 +50,7 @@ pipeline {
 
         stage('Terraform Plan & Apply') {
             steps {
-                dir('terrafom') {
+                dir('terraform') {
                     bat '''
                         C:\\terraform\\terraform.exe plan
                         C:\\terraform\\terraform.exe apply -auto-approve
@@ -101,6 +99,5 @@ pipeline {
                 =========================================
             '''
         }
-        
     }
 }
