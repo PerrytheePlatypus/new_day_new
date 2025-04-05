@@ -3,29 +3,17 @@ pipeline {
 
     environment {
         AZURE_CREDENTIALS_ID = '05-10-2025-adi-april'
-        TERRAFORM_VERSION = '1.7.5'
+        RESOURCE_GROUP = 'rg-jenkins'
+        APP_SERVICE_NAME = 'webapijenkin02202505'
         GIT_REPO_URL = 'https://github.com/PerrytheePlatypus/new_day_new.git'
         GIT_BRANCH = 'main'
+        TERRAFORM_VERSION = '1.7.5'
     }
 
     stages {
-        stage('Clean Workspace') {
-            steps {
-                deleteDir() // Clean workspace to avoid leftover files
-            }
-        }
-
         stage('Checkout Code') {
             steps {
                 git branch: GIT_BRANCH, url: GIT_REPO_URL
-            }
-        }
-
-        stage('Verify Terraform Files') {
-            steps {
-                dir('terraform') { // Navigate to the terraform directory
-                    bat 'dir' // List contents to confirm .tf files exist
-                }
             }
         }
 
@@ -52,7 +40,7 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                dir('terraform') { // Navigate to terraform directory
+                dir('terraform') {
                     bat '''
                         C:\\terraform\\terraform.exe init
                     '''
@@ -60,21 +48,12 @@ pipeline {
             }
         }
 
-        stage('Terraform Plan') {
+        stage('Terraform Plan & Apply') {
             steps {
-                dir('terraform') { // Navigate to terraform directory
+                dir('terraform') {
                     bat '''
-                        C:\\terraform\\terraform.exe plan -var="resource_group_name=rg-jenkins" -var="location=Central US" -var="app_service_plan_name=aditya-2025-jan-cpg" -var="app_service_name=webapijenkin02202505"
-                    '''
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            steps {
-                dir('terraform') { // Navigate to terraform directory
-                    bat '''
-                        C:\\terraform\\terraform.exe apply -auto-approve -var="resource_group_name=rg-jenkins" -var="location=Central US" -var="app_service_plan_name=aditya-2025-jan-cpg" -var="app_service_name=webapijenkin02202505"
+                        C:\\terraform\\terraform.exe plan
+                        C:\\terraform\\terraform.exe apply -auto-approve
                     '''
                 }
             }
@@ -82,7 +61,7 @@ pipeline {
 
         stage('Publish .NET 8 Web API') {
             steps {
-                dir('webapi') { // Navigate to webapi directory
+                dir('webapi') {
                     bat '''
                         dotnet publish -c Release -o out
                         powershell Compress-Archive -Path "out\\*" -DestinationPath "webapi.zip" -Force
@@ -95,7 +74,7 @@ pipeline {
             steps {
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat '''
-                        az webapp deploy --resource-group rg-jenkins --name webapijenkin02202505 --src-path "%WORKSPACE%\\webapi\\webapi.zip" --type zip
+                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path "%WORKSPACE%\\webapi\\webapi.zip" --type zip
                     '''
                 }
             }
@@ -108,7 +87,7 @@ pipeline {
                 =========================================
                 Deployment Successful!
                 Your application is available at:
-                https://webapijenkin02202505.azurewebsites.net
+                https://%APP_SERVICE_NAME%.azurewebsites.net
                 =========================================
             '''
         }
