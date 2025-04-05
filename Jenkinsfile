@@ -41,7 +41,7 @@ pipeline {
                         bat 'dotnet restore'
                         bat 'dotnet build --configuration Release'
                         bat 'dotnet publish -c Release -o out'
-                        bat 'powershell Compress-Archive -Path "out\\*" -DestinationPath "Webapi.zip" -Force'
+                        bat 'powershell Compress-Archive -Path "out\\*" -DestinationPath "WebApplication1.zip" -Force'
                     
                     }
                 }
@@ -51,7 +51,7 @@ pipeline {
                 steps {
                     withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                         bat 'set PATH=%AZURE_CLI_PATH%;%SYSTEM_PATH%;%TERRAFORM_PATH%;%PATH%'
-                        bat 'az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\Webapi\\Webapi.zip --type zip'
+                        bat 'az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path %WORKSPACE%\\Webapi\\WebApplication1.zip --type zip'
                     
                     }
                 }
